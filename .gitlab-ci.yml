@@ -1,0 +1,29 @@
+stages:
+  - build
+  - deploy
+
+variables:
+  TOMCAT_DIR: "/opt/tomcat"
+
+build:
+  stage: build
+  image: maven:latest   # Use the Maven Docker image
+  script:
+    - mvn clean package -Dmaven.compiler.source=8 -Dmaven.compiler.target=8
+
+deploy:
+  stage: deploy
+  image: alpine:latest
+  before_script:
+    # Create SSH directory and set SSH key for authentication
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+    - chmod 600 ~/.ssh/id_ed25519
+    - echo -e "Host 172.171.244.187\n\tStrictHostKeyChecking no\n" > ~/.ssh/config
+    - chmod 644 ~/.ssh/config
+  script:
+    - apk add openssh-client  # Install openssh-client package
+    - scp target/*.war azureuser@172.171.244.187:${TOMCAT_DIR}/webapps
+
+
